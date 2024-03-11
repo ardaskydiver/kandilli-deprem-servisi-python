@@ -1,3 +1,11 @@
+# Gerekli paket kurulumları için terminal kodları
+
+#pip3 install requests --user
+#pip3 install BeautifulSoup --user
+#pip3 install pandas --user
+#pip3 install create_engine --user
+#pip3 install psycopg2 --user
+
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -31,7 +39,7 @@ for line in lines:
 df = pd.DataFrame(data)
 
 # PostgreSQL veritabanına bağlanıyoruz
-engine = create_engine('postgresql://postgres:16012022@localhost:5436/postgres')
+engine = create_engine('postgresql://postgres:password@localhost:5432/postgres')
 
 # DataFrame'i PostgreSQL veritabanına yazıyoruz
 df.to_sql('deprem', engine, if_exists='append')
@@ -42,8 +50,8 @@ try:
         host="localhost",
         database="postgres",
         user="postgres",
-        password="16012022",
-        port=5436
+        password="password",
+        port=5432
     )
     print("Veritabanına başarıyla bağlandı!")
 except Exception as e:
@@ -56,19 +64,21 @@ try:
     cursor.execute("""
         DELETE FROM deprem a USING deprem b WHERE a.seq < b.seq AND a."1" = b."1" AND a."0" = b."0";
         DELETE FROM deprem WHERE "1" IS NULL;
+        update deprem set "7" = null WHERE "7" = '-.-';
         DROP MATERIALIZED VIEW IF EXISTS public.deprem_verileri;
         CREATE MATERIALIZED VIEW deprem_verileri AS
         SELECT
             "index",
-            "0" AS date,
-            "1" AS time,
-            "2" AS lat,
-            "3" AS lon,
-            "4" AS depth,
-            "6" AS biggest,
-            "7" AS sense,
-            concat ("8",' ',"9", ' ',"10" )AS region,
-            ST_MakePoint("3"::decimal, "2"::decimal) AS geom
+            "0"::date AS tarih,
+            "1"::time AS saat,
+            "2"::decimal AS lat,
+            "3"::decimal AS lon,
+            "4"::decimal AS derinlik,
+            "6"::decimal AS buyukluk,
+            "7"::decimal AS hissedilen,
+            concat ("8",' ',"9", ' ',"10" )AS bolge,
+            "seq" as sira,
+            ST_SetSRID(ST_MakePoint("3"::decimal, "2"::decimal), 4326) AS geom
         FROM
             public.deprem;        
         CREATE INDEX deprem_geom_idx ON deprem_verileri USING GIST (geom);
